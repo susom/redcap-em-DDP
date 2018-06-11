@@ -1,0 +1,88 @@
+{
+  "name": "DDP",
+
+  "namespace":"Stanford\\DDP",
+
+  "description": "REDCap DDP processing",
+
+  "no-auth-pages": [
+    "pages/DDP_metadata_service",
+    "pages/DDP_data_service"
+  ],
+
+  "authors": [
+    {
+      "name": "Andy Martin",
+      "email": "andy123@stanford.edu",
+      "institution": "Stanford University"
+    },
+    {
+      "name": "Lee Ann Yasukawa",
+      "email": "yasukawa@stanford.edu",
+      "institution": "Stanford University"
+    }
+  ],
+
+  "permissions": [
+  ],
+
+  "links": {
+    "control-center": [
+      {
+        "name": "DDP Middleman Setup",
+        "icon": "gear",
+        "url": "pages/DDP_setup.php"
+      }
+    ],
+    "project": [
+    ]
+  },
+
+  "system-settings": [
+    {
+      "key": "log_path",
+      "name": "<b>Full server path to log file</b>",
+      "required": false,
+      "type": "text"
+    },
+    {
+      "key": "new_privacy_event_id",
+      "name": "<b>Event ID of New Privacy Report</b>",
+      "required": true,
+      "type": "event-id"
+    },
+    {
+      "key": "new_privacy_pid",
+      "name": "<b>Project ID of New Privacy Report</b>",
+      "required": true,
+      "type": "project-id"
+    },
+    {
+      "key": "old_privacy_pid",
+      "name": "<b>Project ID of 2017 and previous Privacy Report</b>",
+      "required": true,
+      "type": "project-id"
+    },
+    {
+      "key": "old_privacy_event_id",
+      "name": "<b>Event ID of 2017 and previous Privacy Report</b>",
+      "required": true,
+      "type": "event-id"
+    },
+    {
+      "key": "secret",
+      "name": "<b>Shared secret between REDCap and STARR</b>",
+      "required": true,
+      "type": "text"
+    },
+    {
+      "key": "starr_url",
+      "name": "<b>URL of STARR API</b>",
+      "required": true,
+      "type": "text"
+    }
+  ],
+
+  "project-settings": [
+  ]
+}
