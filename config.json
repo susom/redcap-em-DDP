@@ -70,12 +70,6 @@
       "type": "event-id"
     },
     {
-      "key": "secret",
-      "name": "<b>Shared secret between REDCap and STARR</b>",
-      "required": true,
-      "type": "text"
-    },
-    {
       "key": "starr_url",
       "name": "<b>URL of STARR API</b>",
       "required": true,

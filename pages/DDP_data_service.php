@@ -21,13 +21,11 @@
  *      "subcategory" : "BBTests",
  *      "identifier"  : "0" }]
  */
-
 namespace Stanford\DDP;
 /** @var  \Stanford\DDP\DDP $module **/
 
-
+// Retrieve request from user
 $_POST = json_decode(file_get_contents('php://input'), true);
-DDP::log($_POST, "In DDP data service");
 
 $pid = isset($_POST['project_id']) && !empty($_POST['project_id']) ? $_POST['project_id'] : null;
 $user = isset($_POST['user']) && !empty($_POST['user']) ? $_POST['user'] : null;
@@ -36,47 +34,115 @@ $id = isset($_POST['id']) && !empty($_POST['id']) ? $_POST['id'] : null;
 $fields = isset($_POST['fields']) && !empty($_POST['fields']) ? $_POST['fields'] : null;
 
 $now = date('Y-m-d H:i:s');
-DDP::log("Starting data request (pid=$pid) at " . $now, "In DDP data service");
+$request_info = array(
+    "project_id" => $pid,
+    "starttime"  => $now,
+    "user"       => $user,
+    "fields"     => $fields
+);
+$module->log("Starting data request", $request_info);
 
 // Find the IRB number for this project
 $irb_num = findIRBNumber($pid);
 if (is_null($irb_num) or empty($irb_num)) {
-    DDP::log ("Invalid IRB number " . $irb_num . " entered into project " . $pid, "DDP_data_service");
-    exit();
-
+    $msg = "Invalid IRB number " . $irb_num . " entered into project " . $pid;
+    packageError($msg);
+    print $msg;
+    return;
 }
 
-// Make sure it is still valid before retrieving data
+// Make sure IRB is still valid before retrieving data
 $valid = checkIRBValidity($irb_num, $pid);
 if ($valid == false) {
-    DDP::log( "IRB number is not valid - it might have lapsed or it might not be approved", "DDP_data_service");
-    exit();
+    $msg = "IRB number is not valid - it might have lapsed or it might not be approved";
+    packageError($msg);
+    print $msg;
+    return;
 }
 
-// Post to STARR server to retrieve data from tris_rim database
-//STARR URL
-$starr_url = $module->getSystemSetting("starr_url") . "data";
-$secret = $module->getSystemSetting("secret");
+// Find the token external module and retrieve our token for STARR Acess
+$service = 'ddp';
+$DDP = \ExternalModules\ExternalModules::getModuleInstance('vertx_token_manager');
+$token = $DDP->findValidToken($service);
+if ($token == false) {
+    $msg = "Could not connect to DDP data source";
+    packageError($msg);
+    print $msg;
+    return;
+}
 
-//$starr_url = "http://localhost:8080/api/v1/ddp/data";
-//$secret = "zclvkjwoijsaf3";
-
+// Package up our request
+$header = array('Authorization: Bearer ' . $token,
+                'Content-Type: application/json');
 $data = array("project_id"          => $pid,
                 "user"              => $user,
                 "redcap_url"        => $redcap_url,
                 "id"                => $id,
-                "secret"            => $secret,
                 "fields"            => $fields);
 $json_data = json_encode($data);
 
-$results = http_request("POST", $starr_url, null, $json_data);
+// Capture start of our request
+$tsstart = microtime(true);
 
-$now = date('Y-m-d H:i:s');
-DDP::log("Finished data request (pid=$pid) at " . $now, "In DDP data service");
+// Make the API call to STARR DDP data service
+$starr_url = $module->getSystemSetting("starr_url") . "data";
+$results = http_request("POST", $starr_url, $header, $json_data);
+
+// Log how long this request took to complete
+$duration = round(microtime(true) - $tsstart, 1);
+$module->log("Finished data request (pid=$pid) in $duration (microseconds) ", "In DDP data service");
+
+// For debugging purposes
+$debug_info = array(
+    "project_id" => $pid,
+    "user"       => $user,
+    "redcap_url" => $redcap_url,
+    "duration"   => $duration,
+    "results"    => $results
+);
+$module->debug($debug_info, "Results from DDP Data: ");
+
+// Since java is forcing us to add a key for the results, we have to strip off the key ["results"] before
+// re-encoding and sending back to Redcap
+$data = json_decode($results, true);
+$jsonResults =  json_encode($data["results"]);
+header("Context-type: application/json");
+print $jsonResults;
 
 
-print $results;
-exit();
+/*
+ * Connect to loggers
+ */
+function log() {
+    $emLogger = \ExternalModules\ExternalModules::getModuleInstance('em_logger');
+    $emLogger->log($this->PREFIX, func_get_args(), "INFO");
+}
+
+function debug() {
+    // Check if debug enabled
+    if ($this->getSystemSetting('enable-system-debug-logging') || $this->getProjectSetting('enable-project-debug-logging')) {
+        $emLogger = \ExternalModules\ExternalModules::getModuleInstance('em_logger');
+        $emLogger->log($this->PREFIX, func_get_args(), "DEBUG");
+    }
+}
+
+function error() {
+    $emLogger = \ExternalModules\ExternalModules::getModuleInstance('em_logger');
+    $emLogger->log($this->PREFIX, func_get_args(), "ERROR");
+}
+
+/*
+ * Use this when sending message to error logger
+ */
+
+function packageError($msg) {
+    global $module;
+    $error_info = array(
+        "service" => "DDP_data_service",
+        "message" => $msg
+    );
+    $module->error($error_info);
+}
 
 
 ?>

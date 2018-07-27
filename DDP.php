@@ -19,16 +19,6 @@ class DDP extends \ExternalModules\AbstractExternalModule
     public function __construct()
     {
         parent::__construct();
-/*
-        // Project-specific constructor
-        global $project_id;
-        $project_id = 13;
-        if ($project_id > 0) {
-            self::log("Calling project $project_id");
-        } else {
-            self::log("Not in a project");
-        }
-*/
     }
 
 
@@ -46,7 +36,7 @@ class DDP extends \ExternalModules\AbstractExternalModule
     }
 
     public static function writeLog($obj, $detail, $type) {
-        $plugin_log_file = \ExternalModules\ExternalModules::getSystemSetting('DDP','log_path');
+        $plugin_log_file = \ExternalModules\ExternalModules::getSystemSetting('redcap-em-DDP','log_path');
 
         // Get calling file using php backtrace to help label where the log entry is coming from
         $bt = debug_backtrace();

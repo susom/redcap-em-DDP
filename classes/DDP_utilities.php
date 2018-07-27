@@ -7,21 +7,21 @@ use \REDCap;
 
 function findIRBNumber($pid) {
     // Find the IRB number for this project
-    $query = "select project_irb_number from redcap_projects where project_id = " . $pid;
+    // Check to make sure pid is an int
+    $query = "select project_irb_number from redcap_projects where project_id = " . intval($pid);
     $q = db_query($query);
     $results = db_fetch_row($q);
     if (is_null($results) or empty($results)) {
         return null;
     } else {
-        // What should happen if there are more than one record with this IRB number?
         return $results[0];
     }
 }
 
 function checkIRBValidity($irb_num, $pid)
 {
-    $IRB = \ExternalModules\ExternalModules::getModuleInstance('irb_validity');
-    return $IRB->isValid($irb_num, $pid);
+    $tokenMgnt = \ExternalModules\ExternalModules::getModuleInstance('irb');
+    return $tokenMgnt->isIRBValid($irb_num, $pid);
 }
 
 
@@ -140,90 +140,6 @@ function http_request($type, $url, $header, $body=null)
         return $response;
     }
 }
-
-/*
-function find_protocol($protocol_number) {
-    //global $module;
-
-    //$url = $module->getSystemSetting("irb_url");
-    //$apiUrl = $url . $protocol_number;
-    $apiUrl = "https://api.rit.stanford.edu/irb-validity/api/v1/protocol/".$protocol_number;
-    DDP::log("This is the irb url: " . $apiUrl);
-    return  invokeAPI($apiUrl);
-
-}
-
-function invokeAPI($apiUrl) {
-    global $module;
-
-    DDP::log("This is the token file path: " . $module->getModulePath() . "classes/token.json");
-    $jsonToken = json_decode(file_get_contents($module->getModulePath() . "classes/token.json"));
-    $todaysDate = date('Y-m-d');
-
-    // token is only valid 24 hours so if it was issued yesterday it may need refreshing
-    // logIt("PROBLEM refreshing API token ".print_r($jsonToken, true)." ".print_r($todaysDate,true) , "ERROR");
-    if ( strcmp($todaysDate, $jsonToken->day ) != 0) {
-        // dates are different, so refresh the token
-
-        $data = array("refreshToken" => $jsonToken->refreshToken);
-        $data_string = json_encode($data);
-        DDP::log("Retrieving new token, refresh token: " . $jsonToken->refreshToken);
-
-        $ch = curl_init('https://api.rit.stanford.edu/token/api/v1/refresh');
-        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $data_string);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-                'Content-Type: application/json',
-                'Content-Length: ' . strlen($data_string))
-        );
-
-
-        $jsonTokenStr = curl_exec($ch);
-        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        DDP::log("From refresh, http code: " . $http_code);
-        curl_close($ch);
-
-        $jsonToken = json_decode($jsonTokenStr);
-        DDP::log("Response from refresh: " . $jsonToken);
-
-        if (isset($jsonToken->refreshToken) && strlen($jsonToken->refreshToken) > 0 &&
-            isset($jsonToken->accessToken) && strlen($jsonToken->accessToken) > 0 ) {
-
-            // now write out the resulting refresh and access tokens to the token file
-            $data = array("day" => $todaysDate, "refreshToken" => $jsonToken->refreshToken, "accessToken" => $jsonToken->accessToken);
-            file_put_contents("token.json", json_encode($data));
-
-        } else {
-
-            DDP::error("PROBLEM refreshing API token ".print_r($jsonToken, true));
-            return false;
-        }
-    }
-
-    // With a valid token, Invoke API for IRB Validity check
-    $header = array('Authorization: Bearer '.$jsonToken->accessToken,
-                    'Content-Type: application/json');
-    $ch = curl_init( $apiUrl );
-    curl_setopt($ch, CURLOPT_HTTPGET, true);
-    curl_setopt( $ch, CURLOPT_FOLLOWLOCATION, 1);
-    curl_setopt( $ch, CURLOPT_RETURNTRANSFER, 1);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, $header);
-
-    $response = curl_exec( $ch );
-    $info = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-
-    // See if this Get was successful
-    $jsonResponse = json_decode($response,true);
-    $this_protocol = $jsonResponse["protocols"][0];
-    if ($info !== 200) {
-        return false;
-    } else {
-        return $this_protocol;
-    }
-}
-*/
 
 ?>
 

@@ -9,19 +9,21 @@ $metadata_url = $module->getUrl("pages/DDP_metadata_service.php", true, true);
 $data_url = $module->getUrl("pages/DDP_data_service.php", true, true);
 
 if ($realtime_webservice_url_metadata !== $metadata_url) {
-    echo "Please update metadata webservice url to <pre>" .
-        $realtime_webservice_url_metadata . "\n\n" .
+    echo "<b>Please update metadata webservice url to </b><pre>" .
+        $realtime_webservice_url_metadata . "<br>" .
+        "from <br>" .
         $metadata_url . "</pre>";
 } else {
-    echo "<pre>Metadata url is set!</pre>";
+    echo "<b>Metadata url is set!</b><br>URL is: " . $metadata_url . "<br><br><br>";
 }
 
 if ($realtime_webservice_url_data !== $data_url) {
-    echo "Please update data webservice url to <pre>" .
-        $realtime_webservice_url_data . "\n\n" .
+    echo "<b>Please update data webservice url to </b><pre>" .
+        $realtime_webservice_url_data . "<br>" .
+        "from <br>" .
         $data_url . "</pre>";
 } else {
-    echo "<pre>Data url is set!</pre>";
+    echo "<b>Data url is set!</b><br>URL is: " . $data_url . "<br>";
 }
 
 

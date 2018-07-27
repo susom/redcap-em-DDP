@@ -25,16 +25,18 @@
 namespace Stanford\DDP;
 /** @var \Stanford\DDP\DDP $module **/
 
-// Should these be in the config.json file?
 $starr_url = $module->getSystemSetting("starr_url") . "metadata";
-$secret = $module->getSystemSetting("secret");
-
 $pid = isset($_POST['project_id']) && !empty($_POST['project_id']) ? $_POST['project_id'] : null;
 $user = isset($_POST['user']) && !empty($_POST['user']) ? $_POST['user'] : null;
 $redcap_url = isset($_POST['redcap_url']) && !empty($_POST['redcap_url']) ? $_POST['redcap_url'] : null;
 
 $now = date('Y-m-d H:i:s');
-DDP::log("Starting metadata request (pid=$pid) at " . $now, "In DDP metadata service");
+$request_info = array(
+                "project_id" => $pid,
+                "starttime"  => $now,
+                "user"       => $user
+                );
+$module->log( json_encode($request_info), "Starting metadata request: ");
 
 // Find the IRB number for this project
 $irb_num = findIRBNumber($pid);
@@ -43,12 +45,16 @@ $irb_num = findIRBNumber($pid);
 if (!is_null($irb_num) and !empty($irb_num)) {
     $valid = checkIRBValidity($irb_num, $pid);
     if (!$valid) {
-        DDP::log("IRB number " . $irb_num . " is not valid - might have lapsed or might not be approved", "DDP_metadata_service");
-        exit();
+        $msg = "IRB number " . $irb_num . " is not valid - might have lapsed or might not be approved";
+        packageError($msg);
+        print $msg;
+        return;
     }
 } else {
-    DDP::log("Invalid IRB number " . $irb_num . " entered into project " . $pid, "DDP_metadata_service");
-    exit();
+    $msg = "Invalid IRB number " . $irb_num . " entered into project " . $pid;
+    packageError($msg);
+    print $msg;
+    return;
 }
 
 // Check to see if privacy has approved this IRB
@@ -65,20 +71,26 @@ if (!is_null($irb_num) and !empty($irb_num)) {
 //
 $privacy_report = checkPrivacyReport($irb_num);
 if (is_null($privacy_report) or empty($privacy_report)) {
-    DDP::log("Cannot find a privacy record for IRB number " . $irb_num, "DDP_metadata_service");
-    exit();
+    $msg = "Cannot find a privacy record for IRB number " . $irb_num;
+    packageError($msg);
+    print $msg;
+    return;
 }
 
 // Make sure privacy approved this request
 if ($privacy_report['approved'] <> '1') {
-    DDP::log("Privacy has not approved your request for IRB number " . $irb_num, "DDP_metadata_service");
-    exit();
+    $msg = "Privacy has not approved your request for IRB number " . $irb_num;
+    packageError($msg);
+    print $msg;
+    return;
 }
 
 // If this project is not approved for MRNs, they cannot use DDP
 if ($privacy_report['phi']['8'] <> 1) {
-    DDP::log("You are not approved for MRNs which is a requirement for DDP use", "DDP_metadata_service");
-    exit();
+    $msg = "You are not approved for MRNs which is a requirement for DDP use";
+    packageError($msg);
+    print $msg;
+    return;
 }
 
 // If we've gotten here, this project can be setup with DDP.  Look through the IRB/privacy list to see which
@@ -105,29 +117,74 @@ $metadata_list = array( "project_id"        => $pid,
                         "medications_ok"    => $medications_ok,
                         "demo_nonphi_ok"    => $demo_nonphi_ok,
                         "demo_phi_ok"       => $demo_phi_ok,
-                        "demo_phi_approved" => $metadata_phi_list,
-                        "secret"            => $secret
+                        "demo_phi_approved" => $metadata_phi_list
 );
-
 
 $json_string = json_encode($metadata_list);
 
+//Find the token from the external module
+$service = 'ddp';
+$DDP = \ExternalModules\ExternalModules::getModuleInstance('vertx_token_manager');
+$token = $DDP->findValidToken($service);
+if ($token == false) {
+    $msg = "Could not retrieve a valid token for DDP";
+    packageError($msg);
+    print $msg;
+    return;
+}
+
+$tsstart = microtime(true);
+
 // Post to STARR server to retrieve metadata from tris_rim database
-$header = array("Content-type: application/json");
+$header = array('Authorization: Bearer ' . $token,
+                'Content-Type: application/json');
+
 $results = http_request("POST", $starr_url, $header, $json_string);
 
-$now = date('Y-m-d H:i:s');
-DDP::log("Finished metadata request (pid=$pid) at " . $now, "In DDP metadata service");
+$duration = round(microtime(true) - $tsstart, 1);
+$module->log("Finished metadata request (pid=$pid) taking duration $duration");
+$debug_info = array(
+    "project_id" => $pid,
+    "user"       => $user,
+    "redcap_url" => $redcap_url,
+    "duration"   => $duration,
+    "results"    => $results
+            );
+$module->debug(json_encode($debug_info), "Results from DDP MetaData: ");
 
+// Since java is forcing us to add a key for the results, we have to strip off the key ["results"] before
+// re-encoding and sending back to Redcap
+$metaData = json_decode($results, true);
+header("Context-type: application/json");
+print json_encode($metaData["results"]);
 
-print $results;
-exit();
 
 /*
- * Use this when posting to STARR
+ * Connect to loggers
+ */
+function log() {
+    $emLogger = \ExternalModules\ExternalModules::getModuleInstance('em_logger');
+    $emLogger->log($this->PREFIX, func_get_args(), "INFO");
+}
+
+function debug() {
+    // Check if debug enabled
+    if ($this->getSystemSetting('enable-system-debug-logging') || $this->getProjectSetting('enable-project-debug-logging')) {
+        $emLogger = \ExternalModules\ExternalModules::getModuleInstance('em_logger');
+        $emLogger->log($this->PREFIX, func_get_args(), "DEBUG");
+    }
+}
+
+function error() {
+    $emLogger = \ExternalModules\ExternalModules::getModuleInstance('em_logger');
+    $emLogger->log($this->PREFIX, func_get_args(), "ERROR");
+}
+
+/*
+ * Figure out which PHI fields the project is approved for
  */
 function getApprovedPHIfields($phi_report) {
-    // First make an array of the approved PHI items
+    // Make an array of the approved PHI items
     $approved_categories = '';
     foreach ($phi_report as $item => $value) {
         if ($value == '1') {
@@ -137,6 +194,22 @@ function getApprovedPHIfields($phi_report) {
 
     return substr($approved_categories, 1);
 }
+
+/*
+ * Use this when sending message to error logger
+ */
+
+function packageError($msg) {
+    global $module;
+
+    $error_info = array(
+        "service" => "DDP_metadata_service",
+        "message" => $msg
+    );
+    $module->error($error_info);
+
+}
+
 
 ?>
 
