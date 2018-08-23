@@ -1,4 +1,4 @@
-##DDP
+## DDP
 
 The DDP class is a helper EM for accessing STARR data.
 
