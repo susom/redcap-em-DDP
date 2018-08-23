@@ -107,6 +107,7 @@ function checkPrivacyReport($irb_num) {
 
 function http_request($type, $url, $header, $body=null)
 {
+    global $module;
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
     curl_setopt($ch, CURLOPT_AUTOREFERER, true);
@@ -132,9 +133,9 @@ function http_request($type, $url, $header, $body=null)
     curl_close($ch);
 
    if (!empty($error) or ($info["http_code"] !== 200)) {
-        DDP::log("Curl returned output: " . $response);
-        DDP::log( "Curl returned error: " . $error);
-        DDP::log("Curl info: " . json_encode($info));
+        $module->emLog("Curl returned output: " . $response);
+        $module->emLog( "Curl returned error: " . $error);
+        $module->emLog("Curl info: " . json_encode($info));
         return false;
     } else {
         return $response;

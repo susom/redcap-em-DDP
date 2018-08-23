@@ -24,6 +24,8 @@
 namespace Stanford\DDP;
 /** @var  \Stanford\DDP\DDP $module **/
 
+use Stanford\DDP\DDP;
+
 // Retrieve request from user
 $_POST = json_decode(file_get_contents('php://input'), true);
 
@@ -40,7 +42,7 @@ $request_info = array(
     "user"       => $user,
     "fields"     => $fields
 );
-$module->log("Starting data request", $request_info);
+$module->emLog("Starting data request", $request_info);
 
 // Find the IRB number for this project
 $irb_num = findIRBNumber($pid);
@@ -90,7 +92,7 @@ $results = http_request("POST", $starr_url, $header, $json_data);
 
 // Log how long this request took to complete
 $duration = round(microtime(true) - $tsstart, 1);
-$module->log("Finished data request (pid=$pid) in $duration (microseconds) ", "In DDP data service");
+$module->emLog("Finished data request (pid=$pid) in $duration (microseconds) ", "In DDP data service");
 
 // For debugging purposes
 $debug_info = array(
@@ -100,7 +102,7 @@ $debug_info = array(
     "duration"   => $duration,
     "results"    => $results
 );
-$module->debug($debug_info, "Results from DDP Data: ");
+$module->emLog($debug_info, "Results from DDP Data: ");
 
 // Since java is forcing us to add a key for the results, we have to strip off the key ["results"] before
 // re-encoding and sending back to Redcap
@@ -113,12 +115,13 @@ print $jsonResults;
 /*
  * Connect to loggers
  */
-function log() {
+/*
+function emLog() {
     $emLogger = \ExternalModules\ExternalModules::getModuleInstance('em_logger');
     $emLogger->log($this->PREFIX, func_get_args(), "INFO");
 }
 
-function debug() {
+function emDebug() {
     // Check if debug enabled
     if ($this->getSystemSetting('enable-system-debug-logging') || $this->getProjectSetting('enable-project-debug-logging')) {
         $emLogger = \ExternalModules\ExternalModules::getModuleInstance('em_logger');
@@ -126,11 +129,11 @@ function debug() {
     }
 }
 
-function error() {
+function emError() {
     $emLogger = \ExternalModules\ExternalModules::getModuleInstance('em_logger');
     $emLogger->log($this->PREFIX, func_get_args(), "ERROR");
 }
-
+*/
 /*
  * Use this when sending message to error logger
  */
@@ -141,7 +144,7 @@ function packageError($msg) {
         "service" => "DDP_data_service",
         "message" => $msg
     );
-    $module->error($error_info);
+    $module->emError($error_info);
 }
 
 

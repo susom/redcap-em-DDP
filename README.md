@@ -24,6 +24,9 @@ If the field is a temporal field, a min and max timestamp will be sent with the 
 ##Setup
 DDP must be setup by a Redcap SuperUser.
 
+##Dependencies
+This EM depends on vertx Token Manager, IRB Validity Lookup, EM Logger
+
 ```$xslt
 
 

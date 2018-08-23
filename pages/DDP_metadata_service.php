@@ -25,6 +25,8 @@
 namespace Stanford\DDP;
 /** @var \Stanford\DDP\DDP $module **/
 
+use Stanford\DDP\DDP;
+
 $starr_url = $module->getSystemSetting("starr_url") . "metadata";
 $pid = isset($_POST['project_id']) && !empty($_POST['project_id']) ? $_POST['project_id'] : null;
 $user = isset($_POST['user']) && !empty($_POST['user']) ? $_POST['user'] : null;
@@ -36,7 +38,7 @@ $request_info = array(
                 "starttime"  => $now,
                 "user"       => $user
                 );
-$module->log( json_encode($request_info), "Starting metadata request: ");
+$module->emLog( "DDP Metadata request: " . json_encode($request_info));
 
 // Find the IRB number for this project
 $irb_num = findIRBNumber($pid);
@@ -142,7 +144,7 @@ $header = array('Authorization: Bearer ' . $token,
 $results = http_request("POST", $starr_url, $header, $json_string);
 
 $duration = round(microtime(true) - $tsstart, 1);
-$module->log("Finished metadata request (pid=$pid) taking duration $duration");
+$module->emLog("Finished metadata request (pid=$pid) taking duration $duration");
 $debug_info = array(
     "project_id" => $pid,
     "user"       => $user,
@@ -150,7 +152,7 @@ $debug_info = array(
     "duration"   => $duration,
     "results"    => $results
             );
-$module->debug(json_encode($debug_info), "Results from DDP MetaData: ");
+//$module->emDebug("Results from DDP MetaData: " . json_encode($debug_info));
 
 // Since java is forcing us to add a key for the results, we have to strip off the key ["results"] before
 // re-encoding and sending back to Redcap
@@ -162,24 +164,25 @@ print json_encode($metaData["results"]);
 /*
  * Connect to loggers
  */
-function log() {
+/*
+function emLog() {
     $emLogger = \ExternalModules\ExternalModules::getModuleInstance('em_logger');
-    $emLogger->log($this->PREFIX, func_get_args(), "INFO");
+    $emLogger->emLog($this->PREFIX, func_get_args(), "INFO");
 }
 
-function debug() {
+function emDebug() {
     // Check if debug enabled
     if ($this->getSystemSetting('enable-system-debug-logging') || $this->getProjectSetting('enable-project-debug-logging')) {
         $emLogger = \ExternalModules\ExternalModules::getModuleInstance('em_logger');
-        $emLogger->log($this->PREFIX, func_get_args(), "DEBUG");
+        $emLogger->emLog($this->PREFIX, func_get_args(), "DEBUG");
     }
 }
 
-function error() {
+function emError() {
     $emLogger = \ExternalModules\ExternalModules::getModuleInstance('em_logger');
-    $emLogger->log($this->PREFIX, func_get_args(), "ERROR");
+    $emLogger->emLog($this->PREFIX, func_get_args(), "ERROR");
 }
-
+*/
 /*
  * Figure out which PHI fields the project is approved for
  */
@@ -206,7 +209,7 @@ function packageError($msg) {
         "service" => "DDP_metadata_service",
         "message" => $msg
     );
-    $module->error($error_info);
+    $module->emError($error_info);
 
 }
 
