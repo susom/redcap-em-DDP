@@ -20,7 +20,7 @@ function findIRBNumber($pid) {
 
 function checkIRBValidity($irb_num, $pid)
 {
-    $tokenMgnt = \ExternalModules\ExternalModules::getModuleInstance('irb');
+    $tokenMgnt = \ExternalModules\ExternalModules::getModuleInstance('irb_lookup');
     return $tokenMgnt->isIRBValid($irb_num, $pid);
 }
 
