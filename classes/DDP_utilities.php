@@ -35,10 +35,12 @@ function checkPrivacyReport($irb_num) {
     $privacy_fields_new = array('approved', 'd_lab_results', 'd_diag_proc', 'd_medications', 'd_demographics',
         'd_full_name', 'd_geographic', 'd_dates', 'd_telephone', 'd_fax', 'd_email', 'd_ssn', 'd_mrn', 'd_beneficiary_num',
         'd_insurance_num', 'd_certificate_num', 'd_vehicle_num', 'd_device_num');
-    $privacy_filter = '[prj_protocol] = "' . $irb_num . '"';
+    $privacy_filter = "[prj_protocol] = '" . $irb_num . "'";
     $privacy_data = REDCap::getData($module->getSystemSetting("new_privacy_pid"), 'array', null, $privacy_fields_new, null, null, false, false, false, $privacy_filter);
     if (!is_null($privacy_data) and !empty($privacy_data)) {
+        $module->emLog("This is return from Redcap Privacy POST " .  json_encode($privacy_data));
         $privacy_record_id = array_keys($privacy_data)[0];
+        $module->emLog("This is return from POST " . json_encode($privacy_record_id));
 
         // Convert the format to be the same as the old Privacy Report
         $full_name = (($privacy_data[$privacy_record_id][$module->getSystemSetting("new_privacy_event_id")]["d_full_name"][1] === '1')or
@@ -94,9 +96,12 @@ function checkPrivacyReport($irb_num) {
         );
 
         return $privacy;
+    } else {
+        $module->emLog("Post error: " . json_encode($privacy_data));
     }
 
     // Privacy approval was not found in newer project so look through the old project.
+    $module->emLog("Privacy approval was not found in 9883, checking 4734");
     $privacy_fields_old = array('approved', 'lab_results', 'billing_codes', 'clinical_records', 'demographic', 'phi');
     $privacy_filter = '[protocol] = "' . $irb_num . '"';
     $privacy_data = REDCap::getData($module->getSystemSetting("old_privacy_pid"), 'array', null, $privacy_fields_old, null, null, false, false, false, $privacy_filter);
