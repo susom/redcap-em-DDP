@@ -34,6 +34,10 @@ $user = isset($_POST['user']) && !empty($_POST['user']) ? $_POST['user'] : null;
 $redcap_url = isset($_POST['redcap_url']) && !empty($_POST['redcap_url']) ? $_POST['redcap_url'] : null;
 $id = isset($_POST['id']) && !empty($_POST['id']) ? $_POST['id'] : null;
 $fields = isset($_POST['fields']) && !empty($_POST['fields']) ? $_POST['fields'] : null;
+$module->emLog("This is USERID: " . USERID);
+$module->emLog("This is the incoming POST " . json_encode($_POST));
+
+$module->emLog("Entered DDP Data Service for user $user and redcap_pid $id");
 
 $now = date('Y-m-d H:i:s');
 $request_info = array(
