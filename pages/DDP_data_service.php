@@ -30,7 +30,7 @@ use Stanford\DDP\DDP;
 $_POST = json_decode(file_get_contents('php://input'), true);
 
 $pid = isset($_POST['project_id']) && !empty($_POST['project_id']) ? $_POST['project_id'] : null;
-$user = isset($_POST['user']) && !empty($_POST['user']) ? $_POST['user'] : null;
+$user = isset($_POST['user']) && !empty($_POST['user']) ? $_POST['user'] : 'cron';
 $redcap_url = isset($_POST['redcap_url']) && !empty($_POST['redcap_url']) ? $_POST['redcap_url'] : null;
 $id = isset($_POST['id']) && !empty($_POST['id']) ? $_POST['id'] : null;
 $fields = isset($_POST['fields']) && !empty($_POST['fields']) ? $_POST['fields'] : null;
