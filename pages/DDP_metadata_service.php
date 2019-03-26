@@ -32,157 +32,157 @@ $pid = isset($_POST['project_id']) && !empty($_POST['project_id']) ? $_POST['pro
 $user = isset($_POST['user']) && !empty($_POST['user']) ? $_POST['user'] : null;
 $redcap_url = isset($_POST['redcap_url']) && !empty($_POST['redcap_url']) ? $_POST['redcap_url'] : null;
 
-$now = date('Y-m-d H:i:s');
-$request_info = array(
-                "project_id" => $pid,
-                "starttime"  => $now,
-                "user"       => $user
-                );
-$module->emLog( "DDP Metadata request: " . json_encode($request_info));
+if ($user == 'site_admin') {
+    $user = 'yasukawa';
+}
 
-// Find the IRB number for this project
-$irb_num = findIRBNumber($pid);
+$server_host = SERVER_NAME;
 
-//Check to see if Protocol is valid using IRB Validity API
-if (!is_null($irb_num) and !empty($irb_num)) {
-    $valid = checkIRBValidity($irb_num, $pid);
-    if (!$valid) {
-        $msg = "IRB number " . $irb_num . " is not valid - might have lapsed or might not be approved";
+if (((strpos($server_host, 'redcap') !== false) and ($pid == 15800)) or
+    ((strpos($server_host, 'localhost') !== false) and ($pid == 33)) or
+    ((strpos($server_host, 'redcap-dev') !== false) and ($pid == 14437))) {
+
+    // Filename of demo meta data
+    $filename = $module->getModulePath() . 'pages/DDP_data_dictionary_sample.txt';
+
+    $metaData = readDemoDDPData($filename);
+
+    header("Context-type: application/json");
+    print $metaData;
+
+} else {
+    $now = date('Y-m-d H:i:s');
+    $request_info = array(
+        "project_id" => $pid,
+        "starttime" => $now,
+        "user" => $user
+    );
+    $module->emLog("DDP Metadata request: " . json_encode($request_info));
+
+    // Find the IRB number for this project
+    $irb_num = findIRBNumber($pid);
+    $module->emLog("IRB Num: " . $irb_num);
+
+    //Check to see if Protocol is valid using IRB Validity API
+    if (!is_null($irb_num) and !empty($irb_num)) {
+        $valid = checkIRBValidity($irb_num, $pid);
+        if (!$valid) {
+            $msg = "IRB number " . $irb_num . " is not valid - might have lapsed or might not be approved";
+            packageError($msg);
+            print $msg;
+            return;
+        }
+    } else {
+        $msg = "Invalid IRB number " . $irb_num . " entered into project " . $pid;
         packageError($msg);
         print $msg;
         return;
     }
-} else {
-    $msg = "Invalid IRB number " . $irb_num . " entered into project " . $pid;
-    packageError($msg);
-    print $msg;
-    return;
-}
 
-// Check to see if privacy has approved this IRB
-// These are the categories (we are not retrieving all of them - only those in tris_rim.pat_map and tris_rim.rit* tables)
-//      approved => 'Yes' (1), 'No' (0)
-//      lab_results => 1 (Lab test results [non PHI]), 2 (Pathology reports [PHI])
-//      billing_codes => 1 (ICDx, CPT, etc [non PHI])
-//      clinical_records => 1 (Medication Orders [non PHI]), 2 (narrative documentation [PHI])
-//      demographics => 1 (gender, race, height (latest), weight (latest), etc [non PHI]), 2 (HIPAA identifiers [PHI])
-//      HIPAA identifiers => 1 (Names), 2 (SSN), 3 (telephone numbers), 4 (address), 5 (dates more precise than year),
-//                           6 (FAX numbers), 7 (Email address), 8 (Medical record numbers), 9 (Health plan record numbers),
-//                          10 (account numbers), 11 (certificate/license numbers), 13 (device identifiers and serial numbers),
-//                          16 (biometric identifiers), 17 (full face photographic image), 18 (any other PHI value)
-//
-$privacy_report = checkPrivacyReport($irb_num);
-if (is_null($privacy_report) or empty($privacy_report)) {
-    $msg = "Cannot find a privacy record for IRB number " . $irb_num;
-    packageError($msg);
-    print $msg;
-    return;
-}
-
-// Make sure privacy approved this request
-if ($privacy_report['approved'] <> '1') {
-    $msg = "Privacy has not approved your request for IRB number " . $irb_num;
-    packageError($msg);
-    print $msg;
-    return;
-}
-
-// If this project is not approved for MRNs, they cannot use DDP
-if ($privacy_report['phi']['8'] <> 1) {
-    $msg = "You are not approved for MRNs which is a requirement for DDP use";
-    packageError($msg);
-    print $msg;
-    return;
-}
-
-// If we've gotten here, this project can be setup with DDP.  Look through the IRB/privacy list to see which
-// fields they are approved for in their project. To get labs, billing and medications, they must have dates
-// more specific than a year checked.
-$labs_ok = ((($privacy_report['lab_results']['1'] == '1') and ($privacy_report['phi']['5'] == '1')) ? "1" : "0");
-$billing_ok = ((($privacy_report['billing_codes']['1'] == '1') and ($privacy_report['phi']['5'] == '1')) ? "1" : "0");
-$medications_ok = ((($privacy_report['clinical_records']['1'] == '1') and ($privacy_report['phi']['5'] == '1')) ? "1" : "0");
-$demo_nonphi_ok = (($privacy_report['demographic']['1'] == '1') ? "1" : "0");
-$demo_phi_ok = (($privacy_report['demographic']['2'] == '1') ? "1" : "0");
-
-// PHI items are special because they have to have approval for each category of fields
-if ($demo_phi_ok) {
-    $metadata_phi_list = getApprovedPHIfields($privacy_report['phi']);
-} else {
-    $metadata_phi_list = "";
-}
-
-$metadata_list = array( "project_id"        => $pid,
-                        "user"              => $user,
-                        "redcap_url"        => $redcap_url,
-                        "labs_ok"           => $labs_ok,
-                        "billing_ok"        => $billing_ok,
-                        "medications_ok"    => $medications_ok,
-                        "demo_nonphi_ok"    => $demo_nonphi_ok,
-                        "demo_phi_ok"       => $demo_phi_ok,
-                        "demo_phi_approved" => $metadata_phi_list
-);
-
-$json_string = json_encode($metadata_list);
-
-//Find the token from the external module
-$service = 'ddp';
-$DDP = \ExternalModules\ExternalModules::getModuleInstance('vertx_token_manager');
-$token = $DDP->findValidToken($service);
-if ($token == false) {
-    $msg = "Could not retrieve a valid token for DDP";
-    packageError($msg);
-    print $msg;
-    return;
-}
-
-$tsstart = microtime(true);
-
-// Post to STARR server to retrieve metadata from tris_rim database
-$header = array('Authorization: Bearer ' . $token,
-                'Content-Type: application/json');
-
-$results = http_request("POST", $starr_url, $header, $json_string);
-
-$duration = round(microtime(true) - $tsstart, 1);
-$module->emLog("Finished metadata request (pid=$pid) taking duration $duration");
-$debug_info = array(
-    "project_id" => $pid,
-    "user"       => $user,
-    "redcap_url" => $redcap_url,
-    "duration"   => $duration,
-    "results"    => $results
-            );
-//$module->emDebug("Results from DDP MetaData: " . json_encode($debug_info));
-
-// Since java is forcing us to add a key for the results, we have to strip off the key ["results"] before
-// re-encoding and sending back to Redcap
-$metaData = json_decode($results, true);
-header("Context-type: application/json");
-print json_encode($metaData["results"]);
-
-
-/*
- * Connect to loggers
- */
-/*
-function emLog() {
-    $emLogger = \ExternalModules\ExternalModules::getModuleInstance('em_logger');
-    $emLogger->emLog($this->PREFIX, func_get_args(), "INFO");
-}
-
-function emDebug() {
-    // Check if debug enabled
-    if ($this->getSystemSetting('enable-system-debug-logging') || $this->getProjectSetting('enable-project-debug-logging')) {
-        $emLogger = \ExternalModules\ExternalModules::getModuleInstance('em_logger');
-        $emLogger->emLog($this->PREFIX, func_get_args(), "DEBUG");
+    // Check to see if privacy has approved this IRB
+    // These are the categories (we are not retrieving all of them - only those in tris_rim.pat_map and tris_rim.rit* tables)
+    //      approved => 'Yes' (1), 'No' (0)
+    //      lab_results => 1 (Lab test results [non PHI]), 2 (Pathology reports [PHI])
+    //      billing_codes => 1 (ICDx, CPT, etc [non PHI])
+    //      clinical_records => 1 (Medication Orders [non PHI]), 2 (narrative documentation [PHI])
+    //      demographics => 1 (gender, race, height (latest), weight (latest), etc [non PHI]), 2 (HIPAA identifiers [PHI])
+    //      HIPAA identifiers => 1 (Names), 2 (SSN), 3 (telephone numbers), 4 (address), 5 (dates more precise than year),
+    //                           6 (FAX numbers), 7 (Email address), 8 (Medical record numbers), 9 (Health plan record numbers),
+    //                          10 (account numbers), 11 (certificate/license numbers), 13 (device identifiers and serial numbers),
+    //                          16 (biometric identifiers), 17 (full face photographic image), 18 (any other PHI value)
+    //
+    $privacy_report = checkPrivacyReport($irb_num);
+    if (is_null($privacy_report) or empty($privacy_report)) {
+        $msg = "Cannot find a privacy record for IRB number " . $irb_num;
+        packageError($msg);
+        print $msg;
+        return;
     }
+
+    // Make sure privacy approved this request
+    if ($privacy_report['approved'] <> '1') {
+        $msg = "Privacy has not approved your request for IRB number " . $irb_num;
+        packageError($msg);
+        print $msg;
+        return;
+    }
+
+    // If this project is not approved for MRNs, they cannot use DDP
+    if ($privacy_report['phi']['8'] <> 1) {
+        $msg = "You are not approved for MRNs which is a requirement for DDP use";
+        packageError($msg);
+        print $msg;
+        return;
+    }
+
+    // If we've gotten here, this project can be setup with DDP.  Look through the IRB/privacy list to see which
+    // fields they are approved for in their project. To get labs, billing and medications, they must have dates
+    // more specific than a year checked.
+    $labs_ok = ((($privacy_report['lab_results']['1'] == '1') and ($privacy_report['phi']['5'] == '1')) ? "1" : "0");
+    $billing_ok = ((($privacy_report['billing_codes']['1'] == '1') and ($privacy_report['phi']['5'] == '1')) ? "1" : "0");
+    $medications_ok = ((($privacy_report['clinical_records']['1'] == '1') and ($privacy_report['phi']['5'] == '1')) ? "1" : "0");
+    $demo_nonphi_ok = (($privacy_report['demographic']['1'] == '1') ? "1" : "0");
+    $demo_phi_ok = (($privacy_report['demographic']['2'] == '1') ? "1" : "0");
+
+    // PHI items are special because they have to have approval for each category of fields
+    if ($demo_phi_ok) {
+        $metadata_phi_list = getApprovedPHIfields($privacy_report['phi']);
+    } else {
+        $metadata_phi_list = "";
+    }
+
+    $metadata_list = array("project_id" => $pid,
+        "user" => $user,
+        "redcap_url" => $redcap_url,
+        "labs_ok" => $labs_ok,
+        "billing_ok" => $billing_ok,
+        "medications_ok" => $medications_ok,
+        "demo_nonphi_ok" => $demo_nonphi_ok,
+        "demo_phi_ok" => $demo_phi_ok,
+        "demo_phi_approved" => $metadata_phi_list
+    );
+
+    $json_string = json_encode($metadata_list);
+
+    //Find the token from the external module
+    $service = 'ddp';
+    $DDP = \ExternalModules\ExternalModules::getModuleInstance('vertx_token_manager');
+    $token = $DDP->findValidToken($service);
+    if ($token == false) {
+        $msg = "Could not retrieve a valid token for DDP";
+        packageError($msg);
+        print $msg;
+        return;
+    }
+
+    $tsstart = microtime(true);
+
+    // Post to STARR server to retrieve metadata from tris_rim database
+    $header = array('Authorization: Bearer ' . $token,
+        'Content-Type: application/json');
+
+    $results = http_request("POST", $starr_url, $header, $json_string);
+
+    $duration = round(microtime(true) - $tsstart, 1);
+    $module->emLog("Finished metadata request (pid=$pid) taking duration $duration");
+    $debug_info = array(
+        "project_id" => $pid,
+        "user" => $user,
+        "redcap_url" => $redcap_url,
+        "duration" => $duration,
+        "results" => $results
+    );
+    //$module->emDebug("Results from DDP MetaData: " . json_encode($debug_info));
+
+    // Since java is forcing us to add a key for the results, we have to strip off the key ["results"] before
+    // re-encoding and sending back to Redcap
+    $metaData = json_decode($results, true);
+
+    $module->emLog("Data Dictionary response: " . json_encode($metaData["results"]));
+    header("Context-type: application/json");
+    print json_encode($metaData["results"]);
 }
 
-function emError() {
-    $emLogger = \ExternalModules\ExternalModules::getModuleInstance('em_logger');
-    $emLogger->emLog($this->PREFIX, func_get_args(), "ERROR");
-}
-*/
 /*
  * Figure out which PHI fields the project is approved for
  */

@@ -34,110 +34,105 @@ $user = isset($_POST['user']) && !empty($_POST['user']) ? $_POST['user'] : 'cron
 $redcap_url = isset($_POST['redcap_url']) && !empty($_POST['redcap_url']) ? $_POST['redcap_url'] : null;
 $id = isset($_POST['id']) && !empty($_POST['id']) ? $_POST['id'] : null;
 $fields = isset($_POST['fields']) && !empty($_POST['fields']) ? $_POST['fields'] : null;
-$module->emLog("This is USERID: " . USERID);
-$module->emLog("This is the incoming POST " . json_encode($_POST));
-
-$module->emLog("Entered DDP Data Service for user $user and redcap_pid $id");
-
-$now = date('Y-m-d H:i:s');
-$request_info = array(
-    "project_id" => $pid,
-    "starttime"  => $now,
-    "user"       => $user,
-    "fields"     => $fields
-);
-$module->emLog("Starting data request", $request_info);
-
-// Find the IRB number for this project
-$irb_num = findIRBNumber($pid);
-if (is_null($irb_num) or empty($irb_num)) {
-    $msg = "Invalid IRB number " . $irb_num . " entered into project " . $pid;
-    packageError($msg);
-    print $msg;
-    return;
-}
-
-// Make sure IRB is still valid before retrieving data
-$valid = checkIRBValidity($irb_num, $pid);
-if ($valid == false) {
-    $msg = "IRB number is not valid - it might have lapsed or it might not be approved";
-    packageError($msg);
-    print $msg;
-    return;
-}
-
-// Find the token external module and retrieve our token for STARR Acess
-$service = 'ddp';
-$DDP = \ExternalModules\ExternalModules::getModuleInstance('vertx_token_manager');
-$token = $DDP->findValidToken($service);
-if ($token == false) {
-    $msg = "Could not connect to DDP data source";
-    packageError($msg);
-    print $msg;
-    return;
-}
-
-// Package up our request
-$header = array('Authorization: Bearer ' . $token,
-                'Content-Type: application/json');
-$data = array("project_id"          => $pid,
-                "user"              => $user,
-                "redcap_url"        => $redcap_url,
-                "id"                => $id,
-                "fields"            => $fields);
-$json_data = json_encode($data);
-
-// Capture start of our request
-$tsstart = microtime(true);
-
-// Make the API call to STARR DDP data service
-$starr_url = $module->getSystemSetting("starr_url") . "data";
-$results = http_request("POST", $starr_url, $header, $json_data);
-
-// Log how long this request took to complete
-$duration = round(microtime(true) - $tsstart, 1);
-$module->emLog("Finished data request (pid=$pid) in $duration (microseconds) ", "In DDP data service");
-
-// For debugging purposes
-$debug_info = array(
-    "project_id" => $pid,
-    "user"       => $user,
-    "redcap_url" => $redcap_url,
-    "duration"   => $duration,
-    "results"    => $results
-);
-$module->emLog($debug_info, "Results from DDP Data: ");
-
-// Since java is forcing us to add a key for the results, we have to strip off the key ["results"] before
-// re-encoding and sending back to Redcap
-$data = json_decode($results, true);
-$jsonResults =  json_encode($data["results"]);
-header("Context-type: application/json");
-print $jsonResults;
 
 
-/*
- * Connect to loggers
- */
-/*
-function emLog() {
-    $emLogger = \ExternalModules\ExternalModules::getModuleInstance('em_logger');
-    $emLogger->log($this->PREFIX, func_get_args(), "INFO");
-}
+$server_host = SERVER_NAME;
+if (((strpos($server_host, 'redcap') !== false) and ($pid == 15800)) or
+    ((strpos($server_host, 'localhost') !== false) and ($pid == 33)) or
+    ((strpos($server_host, 'redcap-dev') !== false) and ($pid == 14437))) {
 
-function emDebug() {
-    // Check if debug enabled
-    if ($this->getSystemSetting('enable-system-debug-logging') || $this->getProjectSetting('enable-project-debug-logging')) {
-        $emLogger = \ExternalModules\ExternalModules::getModuleInstance('em_logger');
-        $emLogger->log($this->PREFIX, func_get_args(), "DEBUG");
+    $module->emLog("Retrieve fake data for demo site, user $user and pid $pid");
+    
+    // Filename of demo meta data
+    $filename = $module->getModulePath() . 'pages/DDP_data_sample.txt';
+
+    $data = readDemoDDPData($filename);
+    $allData = json_decode($data, true);
+    $dataInTimestamp = findDataWithInTimestamp($allData[$id], $fields);
+    $returnData = json_encode($dataInTimestamp);
+
+    header("Context-type: application/json");
+    print $returnData;
+
+} else {
+
+    $now = date('Y-m-d H:i:s');
+    $request_info = array(
+        "project_id" => $pid,
+        "starttime" => $now,
+        "user" => $user,
+        "fields" => $fields
+    );
+    $module->emLog("Starting data request", $request_info);
+
+    // Find the IRB number for this project
+    $irb_num = findIRBNumber($pid);
+    if (is_null($irb_num) or empty($irb_num)) {
+        $msg = "Invalid IRB number " . $irb_num . " entered into project " . $pid;
+        packageError($msg);
+        print $msg;
+        return;
     }
+
+    // Make sure IRB is still valid before retrieving data
+    $valid = checkIRBValidity($irb_num, $pid);
+    if ($valid == false) {
+        $msg = "IRB number is not valid - it might have lapsed or it might not be approved";
+        packageError($msg);
+        print $msg;
+        return;
+    }
+
+    // Find the token external module and retrieve our token for STARR Acess
+    $service = 'ddp';
+    $DDP = \ExternalModules\ExternalModules::getModuleInstance('vertx_token_manager');
+    $token = $DDP->findValidToken($service);
+    if ($token == false) {
+        $msg = "Could not connect to DDP data source";
+        packageError($msg);
+        print $msg;
+        return;
+    }
+
+    // Package up our request
+    $header = array('Authorization: Bearer ' . $token,
+        'Content-Type: application/json');
+    $data = array("project_id" => $pid,
+        "user" => $user,
+        "redcap_url" => $redcap_url,
+        "id" => $id,
+        "fields" => $fields);
+    $json_data = json_encode($data);
+
+    // Capture start of our request
+    $tsstart = microtime(true);
+
+    // Make the API call to STARR DDP data service
+    $starr_url = $module->getSystemSetting("starr_url") . "data";
+    $results = http_request("POST", $starr_url, $header, $json_data);
+
+    // Log how long this request took to complete
+    $duration = round(microtime(true) - $tsstart, 1);
+    $module->emLog("Finished data request (pid=$pid) in $duration (microseconds) ", "In DDP data service");
+
+    // For debugging purposes
+    $debug_info = array(
+        "project_id" => $pid,
+        "user" => $user,
+        "redcap_url" => $redcap_url,
+        "duration" => $duration,
+        "results" => $results
+    );
+    $module->emLog($debug_info, "Results from DDP Data: ");
+
+    // Since java is forcing us to add a key for the results, we have to strip off the key ["results"] before
+    // re-encoding and sending back to Redcap
+    $data = json_decode($results, true);
+    $jsonResults = json_encode($data["results"]);
+    header("Context-type: application/json");
+    print $jsonResults;
 }
 
-function emError() {
-    $emLogger = \ExternalModules\ExternalModules::getModuleInstance('em_logger');
-    $emLogger->log($this->PREFIX, func_get_args(), "ERROR");
-}
-*/
 /*
  * Use this when sending message to error logger
  */
@@ -150,7 +145,6 @@ function packageError($msg) {
     );
     $module->emError($error_info);
 }
-
 
 ?>
 

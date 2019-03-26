@@ -152,6 +152,72 @@ function http_request($type, $url, $header, $body=null)
     }
 }
 
+function readDemoDDPData($filename) {
+    global $module;
+
+    // Open a handle to the file
+    $handle = fopen($filename, "r");
+    if (empty($handle) or is_null($handle)) {
+        // Couldn't open a handle, something is wrong with the file
+        $module->emError("Error opening file = " . $filename . ". Return code is: " . $handle . "\n");
+        return null;
+
+    } else {
+        $metaData = file_get_contents($filename);
+    }
+
+    // Close the file
+    fclose($handle);
+
+    //return the data from the file
+    return $metaData;
+}
+
+
+function findDataWithInTimestamp($arrayData, $fields) {
+    global $module;
+
+    $minTime = $maxTime = '';
+    $requestedFields = array();
+    // See if a min and max timestamp was given
+    foreach ($fields as $onefield => $fieldData) {
+        $requestedFields[] = $fieldData["field"];
+        if (!empty($fieldData["timestamp_min"])) {
+            $minTime = strtotime($fieldData["timestamp_min"]);
+            $maxTime = strtotime($fieldData["timestamp_max"]);
+        }
+    }
+
+    // Only return data within the timestamp range
+    $inRangeData = array();
+    if (!empty($minTime) and !empty($maxTime)) {
+        foreach($arrayData as $onefield => $fieldData) {
+            $timestamp = strtotime($fieldData["timestamp"]);
+
+            // If this is one of the requested fields, continue
+            if (in_array($fieldData["field"], $requestedFields) !== false) {
+                if (!empty($timestamp)) {
+                    if (($minTime <= $timestamp) and (($maxTime >= $timestamp))) {
+                        $inRangeData[] = $fieldData;
+                    }
+                } else {
+                    $inRangeData[] = $fieldData;
+                }
+            }
+        }
+    } else {
+        // Only send back the fields that were requested
+        foreach($arrayData as $onefield => $fieldData) {
+            if (in_array($fieldData["field"], $requestedFields) !== false) {
+                $inRangeData[] = $fieldData;
+            }
+        }
+    }
+
+    return $inRangeData;
+}
+
+
 ?>
 
 

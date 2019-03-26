@@ -1,0 +1,193 @@
+[{
+  "field":"gender",
+  "label":"Gender",
+  "description":"Gender",
+  "temporal":"0",
+  "category":"Demographics",
+  "subcategory":null,
+  "identifier":"0"
+},{
+  "field":"ethnicity",
+  "label":"Ethnicity",
+  "description":"Ethnicity",
+  "temporal":"0",
+  "category":"Demographics",
+  "subcategory":null,
+  "identifier":"0"
+},{
+  "field":"mrn",
+  "label":"Medical Record Number",
+  "description":"Medical Record Number (xxxxxxxx)",
+  "temporal":"0",
+  "category":"Demographics",
+  "subcategory":null,
+  "identifier":"1"
+},{
+  "field":"first_name",
+  "label":"First Name",
+  "description":"First Name",
+  "temporal":"0",
+  "category":"Demographics",
+  "subcategory":null,
+  "identifier":"0"
+},{
+  "field":"last_name",
+  "label":"Last Name",
+  "description":"Last Name",
+  "temporal":"0",
+  "category":"Demographics",
+  "subcategory":null,
+  "identifier":"0"
+},{
+  "field":"dob",
+  "label":"Date of Birth",
+  "description":"Date of Birth",
+  "temporal":"0",
+  "category":"Demographics",
+  "subcategory":null,
+  "identifier":"0"
+},{
+  "field":"race",
+  "label":"Race",
+  "description":"Race",
+  "temporal":"0",
+  "category":"Demographics",
+  "subcategory":null,
+  "identifier":"0"
+},{
+  "field":"email",
+  "label":"Email Address",
+  "description":"Email Address",
+  "temporal":"0",
+  "category":"Demographics",
+  "subcategory":null,
+  "identifier":"0"
+},{
+  "field":"lab_wbc",
+  "label":"WBC",
+  "description":"White Blood Count",
+  "temporal":"1",
+  "category":"Labs",
+  "subcategory":"Labs W",
+  "identifier":"0"
+},{
+  "field":"lab_rbc",
+  "label":"RBC",
+  "description":"Red Blood Count",
+  "temporal":"1",
+  "category":"Labs",
+  "subcategory":"Labs R",
+  "identifier":"0"
+},{
+  "field":"lab_hgb",
+  "label":"Hemoglobin",
+  "description":"Hemoglobin",
+  "temporal":"1",
+  "category":"Labs",
+  "subcategory":"Labs H",
+  "identifier":"0"
+},{
+  "field":"lab_hct",
+  "label":"Hematocrit",
+  "description":"Hematocrit",
+  "temporal":"1",
+  "category":"Labs",
+  "subcategory":"Labs H",
+  "identifier":"0"
+},{
+  "field":"lab_plt",
+  "label":"Platelets",
+  "description":"Platelets",
+  "temporal":"1",
+  "category":"Labs",
+  "subcategory":"Labs P",
+  "identifier":"0"
+},{
+  "field":"icd9_4019",
+  "label":"[401.9] Hypertension NOS",
+  "description":"Unspecified essential hypertension",                                                                                                                                                                                                                        
+  "temporal":"1",
+  "category":"ICD9",
+  "subcategory":"390–459: Diseases of the circulatory system",
+  "identifier":"0"
+},{
+  "field":"icd9_7999",
+  "label":"[799.9] Other unknown and unspecified cause of morbidity and mortality",
+  "description":"[799.9] Other unknown and unspecified cause of morbidity and mortality",
+  "temporal":"1",
+  "category":"ICD9",
+  "subcategory":"780–799: Symptoms, signs, and ill-defined conditions",
+  "identifier":"0"
+},{
+  "field":"icd9_2724",
+  "label":"[272.4] Hyperlipidemia NEC/NOS",
+  "description":"Other and unspecified hyperlipidemia",                                                                                                                                                            
+  "temporal":"1",
+  "category":"ICD9",
+  "subcategory":"240–279: Endocrine, nutritional and metabolic diseases, and immunity disorders",
+  "identifier":"0"
+},{
+  "field":"icd10_I10",
+  "label":"[I10] Essential (primary) hypertension",
+  "description":"Essential (primary) hypertension",                                                                                                                                                                                                                        
+  "temporal":"1",
+  "category":"ICD10",
+  "subcategory":"I: Circulatory System",
+  "identifier":"0"
+},{
+  "field":"icd10_R69",
+  "label":"[R69] Illness, unspecified",
+  "description":"Illness, unspecified",
+  "temporal":"1",
+  "category":"ICD10",
+  "subcategory":"R: Symptoms, Signs and Abnormal Clinical and Lab Findings",
+  "identifier":"0"
+},{
+  "field":"icd10_E785",
+  "label":"[E78.5] Hyperlipidemia, unspecified",
+  "description":"Hyperlipidemia, unspecified",                                                                                                                                                            
+  "temporal":"1",
+  "category":"ICD10",
+  "subcategory":"E: Endocrine, Nutritional, Metabolic",
+  "identifier":"0"
+},{
+  "field":"cpt_85025",
+  "label":"[85025] BLD# COMPL AUTO HHRWP&AUTO DIFFIAL",
+  "description":"BLD# COMPL AUTO HHRWP&AUTO DIFFIAL",                                                                                                                                                            
+  "temporal":"1",
+  "category":"CPT",
+  "subcategory":"[80000 – 89398] Pathology and Laboratory",
+  "identifier":"0"
+},{
+  "field":"cpt_99214",
+  "label":"[99214] EVAL/MGMT OF EST PATIENT LEVEL 4",
+  "description":"EVAL/MGMT OF EST PATIENT LEVEL 4",                                                                                                                                                            
+  "temporal":"1",
+  "category":"CPT",
+  "subcategory":"[99201 – 99499] Evaluation and Management",
+  "identifier":"0"
+},{
+  "field":"cpt_93005",
+  "label":"[93005] ECG ROUTINE ECG W/LEAST 12 LDS TRCG ONLY W/O I&R",
+  "description":"ECG ROUTINE ECG W/LEAST 12 LDS TRCG ONLY W/O I&R",                                                                                                                                                            
+  "temporal":"1",
+  "category":"CPT",
+  "subcategory":"[90281 – 99099] Medicine",
+  "identifier":"0"
+},{
+  "field":"med_5640",
+  "label":"Ibuprofen",
+  "description":"Ibuprofen",                                                                                                                                                            
+  "temporal":"1",
+  "category":"Medication",
+  "subcategory":"Active_Ingredient_I",
+  "identifier":"0"
+},{
+  "field":"med_5856",
+  "label":"Insulin",
+  "description":"Insulin",                                                                                                                                                            
+  "temporal":"1",
+  "category":"Medication",
+  "subcategory":"Active_Ingredient_I",
+  "identifier":"0"
+}]
