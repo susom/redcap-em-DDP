@@ -28,7 +28,7 @@ class DDP extends \ExternalModules\AbstractExternalModule
     }
 
     public function emDebug($obj = "Here", $detail = null, $type = "DEBUG") {
-        if ($this->getSystemSetting('enable-system-debug-logging') || $this->getProjectSetting('enable-project-debug-logging')) {
+        if ($this->getSystemSetting('enable-system-debug-logging') || ( !empty($_GET['pid']) && $this->getProjectSetting('enable-project-debug-logging'))) {
             $emLogger = \ExternalModules\ExternalModules::getModuleInstance('em_logger');
             $emLogger->emLog($this->PREFIX, func_get_args(), "DEBUG");
         }
