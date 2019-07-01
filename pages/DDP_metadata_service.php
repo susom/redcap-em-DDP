@@ -99,6 +99,8 @@ if (((strpos($server_host, 'redcap') !== false) and ($pid == 15800)) or
         return;
     }
 
+    $module->emLog("Return from Privacy Report: " . json_encode($privacy_report));
+
     // Make sure privacy approved this request
     if ($privacy_report['approved'] <> '1') {
         $msg = "Privacy has not approved your request for IRB number " . $irb_num;
@@ -144,6 +146,8 @@ if (((strpos($server_host, 'redcap') !== false) and ($pid == 15800)) or
 
     $json_string = json_encode($metadata_list);
 
+    $module->emLog("String to Vertx: " . $json_string);
+
     //Find the token from the external module
     $service = 'ddp';
     $DDP = \ExternalModules\ExternalModules::getModuleInstance('vertx_token_manager');
@@ -178,7 +182,7 @@ if (((strpos($server_host, 'redcap') !== false) and ($pid == 15800)) or
     // re-encoding and sending back to Redcap
     $metaData = json_decode($results, true);
 
-    $module->emLog("Data Dictionary response: " . json_encode($metaData["results"]));
+    //$module->emLog("Data Dictionary response: " . json_encode($metaData["results"]));
     header("Context-type: application/json");
     print json_encode($metaData["results"]);
 }

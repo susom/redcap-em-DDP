@@ -34,51 +34,65 @@ function checkPrivacyReport($irb_num) {
     // go to 4734.
     $privacy_fields_new = array('approved', 'd_lab_results', 'd_diag_proc', 'd_medications', 'd_demographics',
         'd_full_name', 'd_geographic', 'd_dates', 'd_telephone', 'd_fax', 'd_email', 'd_ssn', 'd_mrn', 'd_beneficiary_num',
-        'd_insurance_num', 'd_certificate_num', 'd_vehicle_num', 'd_device_num');
+        'd_insurance_num', 'd_certificate_num', 'd_vehicle_num', 'd_device_num', 'approval_date');
     $privacy_filter = "[prj_protocol] = '" . $irb_num . "' and [approved] = 1";
     $privacy_data = REDCap::getData($module->getSystemSetting("new_privacy_pid"), 'array', null, $privacy_fields_new, null, null, false, false, false, $privacy_filter);
     if (!is_null($privacy_data) and !empty($privacy_data)) {
-        $privacy_record_id = array_keys($privacy_data)[0];
-        $module->emLog("This is return from getData " . json_encode($privacy_record_id));
+
+        $last_modified_date = array();
+
+        // Check to see which record has the last approval and select that one
+        $privacy_event_id = $module->getSystemSetting("new_privacy_event_id");
+        foreach ($privacy_data as $privacy_record_num => $privacy_record) {
+            $last_modified_date[$privacy_record_num] = $privacy_record[$privacy_event_id]['approval_date'];
+
+        }
+        // Sorting is most recent first so take the first record
+        arsort($last_modified_date);
+        $privacy_record_id = array_keys($last_modified_date)[0];
+
+        $privacy_record = $privacy_data[$privacy_record_id][$privacy_event_id];
+        $module->emLog("This is latest record: " . json_encode($privacy_record));
+        $module->emLog("Privacy record ID " . $privacy_record_id . ", and event id: " . $module->getSystemSetting("new_privacy_event_id"));
 
         // Convert the format to be the same as the old Privacy Report
-        $full_name = (($privacy_data[$privacy_record_id][$module->getSystemSetting("new_privacy_event_id")]["d_full_name"][1] === '1')or
-            ($privacy_data[$privacy_record_id][$module->getSystemSetting("new_privacy_event_id")]["d_full_name"][2] === '1') or
-            ($privacy_data[$privacy_record_id][$module->getSystemSetting("new_privacy_event_id")]["d_full_name"][3] === '1') ? "1" : "0");
-        $phone = (($privacy_data[$privacy_record_id][$module->getSystemSetting("new_privacy_event_id")]["d_telephone"][1] === '1') or
-            ($privacy_data[$privacy_record_id][$module->getSystemSetting("new_privacy_event_id")]["d_telephone"][2] === '1') or
-            ($privacy_data[$privacy_record_id][$module->getSystemSetting("new_privacy_event_id")]["d_telephone"][3] === '1') ? "1" : "0");
-        $geography = (($privacy_data[$privacy_record_id][$module->getSystemSetting("new_privacy_event_id")]["d_geographic"][1] === '1') or
-            ($privacy_data[$privacy_record_id][$module->getSystemSetting("new_privacy_event_id")]["d_geographic"][2] === '1') or
-            ($privacy_data[$privacy_record_id][$module->getSystemSetting("new_privacy_event_id")]["d_geographic"][3] === '1') ? "1" : "0");
-        $dates = (($privacy_data[$privacy_record_id][$module->getSystemSetting("new_privacy_event_id")]["d_dates"][1] === '1') or
-            ($privacy_data[$privacy_record_id][$module->getSystemSetting("new_privacy_event_id")]["d_dates"][2] === '1') or
-            ($privacy_data[$privacy_record_id][$module->getSystemSetting("new_privacy_event_id")]["d_dates"][3] === '1') ? "1" : "0");
-        $email = (($privacy_data[$privacy_record_id][$module->getSystemSetting("new_privacy_event_id")]["d_email"][1] === '1') or
-            ($privacy_data[$privacy_record_id][$module->getSystemSetting("new_privacy_event_id")]["d_email"][2] === '1') or
-            ($privacy_data[$privacy_record_id][$module->getSystemSetting("new_privacy_event_id")]["d_email"][3] === '1') ? "1" : "0");
-        $mrn = (($privacy_data[$privacy_record_id][$module->getSystemSetting("new_privacy_event_id")]["d_mrn"][1] === '1') or
-            ($privacy_data[$privacy_record_id][$module->getSystemSetting("new_privacy_event_id")]["d_mrn"][2] === '1') or
-            ($privacy_data[$privacy_record_id][$module->getSystemSetting("new_privacy_event_id")]["d_mrn"][3] === '1') ? "1" : "0");
-        $insurance = (($privacy_data[$privacy_record_id][$module->getSystemSetting("new_privacy_event_id")]["d_insurance_num"][1] === '1') or
-            ($privacy_data[$privacy_record_id][$module->getSystemSetting("new_privacy_event_id")]["d_insurance_num"][2] === '1') or
-            ($privacy_data[$privacy_record_id][$module->getSystemSetting("new_privacy_event_id")]["d_insurance_num"][3] === '1') ? "1" : "0");
-        $labs = (($privacy_data[$privacy_record_id][$module->getSystemSetting("new_privacy_event_id")]["d_lab_results"][1] === '1') or
-            ($privacy_data[$privacy_record_id][$module->getSystemSetting("new_privacy_event_id")]["d_lab_results"][2] === '1') or
-            ($privacy_data[$privacy_record_id][$module->getSystemSetting("new_privacy_event_id")]["d_lab_results"][3] === '1') ? "1" : "0");
-        $billing = (($privacy_data[$privacy_record_id][$module->getSystemSetting("new_privacy_event_id")]["d_diag_proc"][1] === '1') or
-            ($privacy_data[$privacy_record_id][$module->getSystemSetting("new_privacy_event_id")]["d_diag_proc"][2] === '1') or
-            ($privacy_data[$privacy_record_id][$module->getSystemSetting("new_privacy_event_id")]["d_diag_proc"][3] === '1') ? "1" : "0");
-        $clinical = (($privacy_data[$privacy_record_id][$module->getSystemSetting("new_privacy_event_id")]["d_medications"][1] === '1') or
-            ($privacy_data[$privacy_record_id][$module->getSystemSetting("new_privacy_event_id")]["d_medications"][2] === '1') or
-            ($privacy_data[$privacy_record_id][$module->getSystemSetting("new_privacy_event_id")]["d_medications"][3] === '1') ? "1" : "0");
-        $nonPhi = (($privacy_data[$privacy_record_id][$module->getSystemSetting("new_privacy_event_id")]["d_demographics"][1] === '1') or
-            ($privacy_data[$privacy_record_id][$module->getSystemSetting("new_privacy_event_id")]["d_demographics"][2] === '1') or
-            ($privacy_data[$privacy_record_id][$module->getSystemSetting("new_privacy_event_id")]["d_demographics"][3] === '1') ? "1" : "0");
+        $full_name  = (($privacy_record["d_full_name"][1] === '1')or
+                        ($privacy_record["d_full_name"][2] === '1') or
+                        ($privacy_record["d_full_name"][3] === '1') ? "1" : "0");
+        $phone      = (($privacy_record["d_telephone"][1] === '1') or
+                        ($privacy_record["d_telephone"][2] === '1') or
+                        ($privacy_record["d_telephone"][3] === '1') ? "1" : "0");
+        $geography  = (($privacy_record["d_geographic"][1] === '1') or
+                        ($privacy_record["d_geographic"][2] === '1') or
+                        ($privacy_record["d_geographic"][3] === '1') ? "1" : "0");
+        $dates      = (($privacy_record["d_dates"][1] === '1') or
+                        ($privacy_record["d_dates"][2] === '1') or
+                        ($privacy_record["d_dates"][3] === '1') ? "1" : "0");
+        $email      = (($privacy_record["d_email"][1] === '1') or
+                        ($privacy_record["d_email"][2] === '1') or
+                        ($privacy_record["d_email"][3] === '1') ? "1" : "0");
+        $mrn        = (($privacy_record["d_mrn"][1] === '1') or
+                        ($privacy_record["d_mrn"][2] === '1') or
+                        ($privacy_record["d_mrn"][3] === '1') ? "1" : "0");
+        $insurance  = (($privacy_record["d_insurance_num"][1] === '1') or
+                        ($privacy_record["d_insurance_num"][2] === '1') or
+                        ($privacy_record["d_insurance_num"][3] === '1') ? "1" : "0");
+        $labs       = (($privacy_record["d_lab_results"][1] === '1') or
+                        ($privacy_record["d_lab_results"][2] === '1') or
+                        ($privacy_record["d_lab_results"][3] === '1') ? "1" : "0");
+        $billing    = (($privacy_record["d_diag_proc"][1] === '1') or
+                        ($privacy_record["d_diag_proc"][2] === '1') or
+                        ($privacy_record["d_diag_proc"][3] === '1') ? "1" : "0");
+        $clinical   = (($privacy_record["d_medications"][1] === '1') or
+                        ($privacy_record["d_medications"][2] === '1') or
+                        ($privacy_record["d_medications"][3] === '1') ? "1" : "0");
+        $nonPhi     = (($privacy_record["d_demographics"][1] === '1') or
+                        ($privacy_record["d_demographics"][2] === '1') or
+                        ($privacy_record["d_demographics"][3] === '1') ? "1" : "0");
         $phi =  ((($full_name == "1") or ($phone == "1") or ($geography == "1") or ($dates == "1") or
             ($email == "1") or ($mrn == "1") or ($insurance == "1")) ? "1" : "0");
 
-        $privacy = array("approved" => $privacy_data[$privacy_record_id][$module->getSystemSetting("new_privacy_event_id")]["approved"],
+        $privacy = array("approved" => $privacy_record["approved"],
                         "phi" => array( "1" => $full_name,
                                         "3" => $phone,
                                         "4" => $geography,
@@ -94,6 +108,7 @@ function checkPrivacyReport($irb_num) {
                                                 "2" => $phi)
         );
 
+        $module->emLog("Return from privacy report 9883: " . json_encode($privacy));
         return $privacy;
     } else {
         $module->emLog("Privacy approval was not found in 9883, checking 4734");
