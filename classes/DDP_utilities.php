@@ -232,6 +232,90 @@ function findDataWithInTimestamp($arrayData, $fields) {
     return $inRangeData;
 }
 
+/*
+ * Figure out which PHI fields the project is approved for
+ */
+function getApprovedPHIfields($phi_report) {
+
+    // Make an array of the approved PHI items
+    $approved_categories = '';
+
+    foreach ($phi_report as $item => $value) {
+
+        if ($value == '1') {
+
+            if ($approved_categories != '') {
+                $approved_categories .= ',';
+            }
+
+            switch ($item) {
+                case "fullname":
+                    $approved_categories .= 1;
+                    break;
+                case "ssn":
+                    $approved_categories .= 2;
+                    break;
+                case "phone":
+                    $approved_categories .= 3;
+                    break;
+                case "geography":
+                    $approved_categories .= 4;
+                    break;
+                case "dates":
+                    $approved_categories .= 5;
+                    break;
+                case "fax":
+                    $approved_categories .= 6;
+                    break;
+                case "email":
+                    $approved_categories .= 7;
+                    break;
+                case "mrn":
+                    $approved_categories .= 8;
+                    break;
+                case "insurance":
+                    $approved_categories .= 9;
+                    break;
+                case "accounts":
+                    $approved_categories .= 10;
+                    break;
+                case "license":
+                    $approved_categories .= 11;
+                    break;
+                case "deviceids":
+                    $approved_categories .= 13;
+                    break;
+                case "biometric":
+                    $approved_categories .= 16;
+                    break;
+                case "photos":
+                    $approved_categories .= 17;
+                    break;
+                case "other":
+                    $approved_categories .= 18;
+                    break;
+            }
+
+        }
+    }
+
+    return $approved_categories;
+}
+
+
+/*
+ * Use this when sending message to error logger
+ */
+
+function packageError($service, $msg) {
+
+    global $module;
+    $error_info = array(
+        "service" => $service,
+        "message" => $msg
+    );
+    $module->emError($error_info);
+}
 
 ?>
 

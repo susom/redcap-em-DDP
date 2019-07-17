@@ -34,7 +34,7 @@ $user = isset($_POST['user']) && !empty($_POST['user']) ? $_POST['user'] : 'cron
 $redcap_url = isset($_POST['redcap_url']) && !empty($_POST['redcap_url']) ? $_POST['redcap_url'] : null;
 $id = isset($_POST['id']) && !empty($_POST['id']) ? $_POST['id'] : null;
 $fields = isset($_POST['fields']) && !empty($_POST['fields']) ? $_POST['fields'] : null;
-
+$ddp_service = "DDP_data_service";
 
 $server_host = SERVER_NAME;
 if (((strpos($server_host, 'redcap') !== false) and ($pid == 15800)) or
@@ -63,22 +63,23 @@ if (((strpos($server_host, 'redcap') !== false) and ($pid == 15800)) or
         "user" => $user,
         "fields" => $fields
     );
-    $module->emLog("Starting data request", $request_info);
+    $module->emDebug("Starting data request for $id", $request_info);
 
-    // Find the IRB number for this project
-    $irb_num = findIRBNumber($pid);
+    // Find the entered IRB number in the project setup page
+    $IRBL = \ExternalModules\ExternalModules::getModuleInstance('irb_lookup');
+    $irb_num = $IRBL->findIRBNumber($pid);
     if (is_null($irb_num) or empty($irb_num)) {
-        $msg = "Invalid IRB number " . $irb_num . " entered into project " . $pid;
-        packageError($msg);
+        $msg = "No IRB number is entered into project " . $pid;
+        packageError($ddp_service, $msg);
         print $msg;
         return;
     }
 
-    // Make sure IRB is still valid before retrieving data
-    $valid = checkIRBValidity($irb_num, $pid);
+    // Check to see if the IRB is valid
+    $valid = $IRBL->isIRBValid($irb_num, $pid);
     if ($valid == false) {
         $msg = "IRB number is not valid - it might have lapsed or it might not be approved";
-        packageError($msg);
+        packageError($ddp_service, $msg);
         print $msg;
         return;
     }
@@ -89,7 +90,7 @@ if (((strpos($server_host, 'redcap') !== false) and ($pid == 15800)) or
     $token = $DDP->findValidToken($service);
     if ($token == false) {
         $msg = "Could not connect to DDP data source";
-        packageError($msg);
+        packageError($ddp_service, $msg);
         print $msg;
         return;
     }
@@ -103,6 +104,7 @@ if (((strpos($server_host, 'redcap') !== false) and ($pid == 15800)) or
         "id" => $id,
         "fields" => $fields);
     $json_data = json_encode($data);
+    $module->emDebug("Sending this to Vertx: " . $json_data);
 
     // Capture start of our request
     $tsstart = microtime(true);
@@ -113,7 +115,7 @@ if (((strpos($server_host, 'redcap') !== false) and ($pid == 15800)) or
 
     // Log how long this request took to complete
     $duration = round(microtime(true) - $tsstart, 1);
-    $module->emLog("Finished data request (pid=$pid) in $duration (microseconds) ", "In DDP data service");
+    $module->emDebug("Finished data request (pid=$pid) in $duration (microseconds) ", "In DDP data service");
 
     // For debugging purposes
     $debug_info = array(
@@ -123,28 +125,16 @@ if (((strpos($server_host, 'redcap') !== false) and ($pid == 15800)) or
         "duration" => $duration,
         "results" => $results
     );
-    $module->emLog($debug_info, "Results from DDP Data: ");
 
     // Since java is forcing us to add a key for the results, we have to strip off the key ["results"] before
     // re-encoding and sending back to Redcap
+    $module->emDebug("These are the results: " . json_encode($results));
     $data = json_decode($results, true);
     $jsonResults = json_encode($data["results"]);
     header("Context-type: application/json");
     print $jsonResults;
 }
 
-/*
- * Use this when sending message to error logger
- */
-
-function packageError($msg) {
-    global $module;
-    $error_info = array(
-        "service" => "DDP_data_service",
-        "message" => $msg
-    );
-    $module->emError($error_info);
-}
 
 ?>
 
