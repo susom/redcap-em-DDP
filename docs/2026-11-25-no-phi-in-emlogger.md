@@ -8,7 +8,7 @@
 ## Fix
 
 - The failure path now logs one `emError` line with the HTTP status, the response size and the curl error. That's arguably the right level for a failure anyway.
-- The three debug lines log the field count and the response size instead.
+- The three debug lines log the field count and the response size instead. The `fields` list was dropped from the start-of-request debug context too: each entry carries the patient's `timestamp_min` / `timestamp_max` dates (fixed after code review).
 - Return values and behavior are unchanged.
 
 ## How it was reproduced and verified (local, REDCap 17.5.9)

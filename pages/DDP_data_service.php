@@ -57,11 +57,12 @@ if (((strpos($server_host, 'redcap') !== false) and ($pid == 15800)) or
 } else {
 
     $now = date('Y-m-d H:i:s');
+    // Field count only: each entry carries this patient's timestamp_min / timestamp_max dates.
     $request_info = array(
         "project_id" => $pid,
         "starttime" => $now,
         "user" => $user,
-        "fields" => $fields
+        "field_count" => is_array($fields) ? count($fields) : 0
     );
     // $id is the patient MRN and $results the EHR values: never log either.
     $module->emDebug("Starting data request", $request_info);
