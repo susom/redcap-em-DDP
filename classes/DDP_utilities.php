@@ -158,9 +158,9 @@ function http_request($type, $url, $header, $body=null)
     curl_close($ch);
 
    if (!empty($error) or ($info["http_code"] !== 200)) {
-        $module->emLog("Curl returned output: " . $response);
-        $module->emLog( "Curl returned error: " . $error);
-        $module->emLog("Curl info: " . json_encode($info));
+        // Not $response: STARR's error body can echo the request (MRN) or patient values.
+        $module->emError("STARR request failed: HTTP " . $info["http_code"] . ", " . strlen((string) $response)
+            . " byte response, curl error: " . ($error === '' ? 'none' : $error));
         return false;
     } else {
         return $response;

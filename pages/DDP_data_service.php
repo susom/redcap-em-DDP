@@ -63,7 +63,8 @@ if (((strpos($server_host, 'redcap') !== false) and ($pid == 15800)) or
         "user" => $user,
         "fields" => $fields
     );
-    $module->emDebug("Starting data request for $id", $request_info);
+    // $id is the patient MRN and $results the EHR values: never log either.
+    $module->emDebug("Starting data request", $request_info);
 
     // Find the entered IRB number in the project setup page
     $IRBL = \ExternalModules\ExternalModules::getModuleInstance('irb_lookup');
@@ -104,7 +105,7 @@ if (((strpos($server_host, 'redcap') !== false) and ($pid == 15800)) or
         "id" => $id,
         "fields" => $fields);
     $json_data = json_encode($data);
-    $module->emDebug("Sending this to Vertx: " . $json_data);
+    $module->emDebug("Sending data request to Vertx for project $pid (" . (is_array($fields) ? count($fields) : 0) . " fields)");
 
     // Capture start of our request
     $tsstart = microtime(true);
@@ -128,7 +129,7 @@ if (((strpos($server_host, 'redcap') !== false) and ($pid == 15800)) or
 
     // Since java is forcing us to add a key for the results, we have to strip off the key ["results"] before
     // re-encoding and sending back to Redcap
-    $module->emDebug("These are the results: " . json_encode($results));
+    $module->emDebug("Received " . strlen((string) $results) . " bytes of results");
     $data = json_decode($results, true);
     $jsonResults = json_encode($data["results"]);
     header("Context-type: application/json");
